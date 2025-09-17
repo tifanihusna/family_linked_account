@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Family-Linked Digital Account — Dual Stage Prototype (Lessons • Fixed)</title>
+  <style>
+    :root{
+      --bg:#f6f8fb; --card:#ffffff; --ink:#0f172a; --muted:#64748b; --border:#e6eef4;
+      --accent:#0ea5a3; --accent-ink:#065f5b; --accent-soft:#e6fbfa;
+      --stage1:#2563eb; --stage1-soft:#e8efff; --stage2:#059669; --stage2-soft:#e6f9f1;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial;color:var(--ink)}
+    .wrap{max-width:1160px;margin:0 auto;padding:24px}
+    h1{margin:0 0 6px 0;font-size:26px}
+    .subtitle{color:var(--muted);font-size:13px}
+    .header{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .stage-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-size:12px;border:1px solid var(--border);background:#fff}
+    .stage1{background:#e8efff; border-color:#2563eb; color:#2563eb}
+    .stage2{background:#e6f9f1; border-color:#059669; color:#059669}
+    .tabs{display:flex;gap:6px}
+    .tab{padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:14px}
+    .tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-top:16px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:16px;box-shadow:0 2px 8px rgba(15,23,42,.05)}
+    .card h3{margin:0 0 10px 0;font-size:17px}
+    .pill{padding:2px 8px;border-radius:999px;font-size:12px;background:#eef2f7;display:inline-flex;align-items:center}
+    .pill.ok{background:#d1fae5;color:#065f46}
+    .pill.warn{background:#fef3c7;color:#92400e}
+    .btn{padding:10px 14px;border-radius:14px;font-size:14px;border:1px solid var(--border);background:var(--accent);color:#fff;cursor:pointer}
+    .btn.ghost{background:#fff;color:#0f172a}
+    .btn.success{background:#047857;border-color:#047857}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    .row{display:flex;gap:10px;align-items:center}
+    .right{margin-left:auto}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+    .muted{color:var(--muted);font-size:12px}
+    .list{display:flex;flex-direction:column;gap:8px;max-height:280px;overflow:auto}
+    input[type="number"], input[type="text"], select{padding:10px;border:1px solid var(--border);border-radius:12px;width:100%;font-size:14px}
+    label{font-size:12px;color:var(--muted)}
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:16px;z-index:9999}
+    .modal.active{display:flex}
+    .modal .box{background:#fff;border-radius:16px;padding:16px;width:560px;max-height:86vh;overflow:auto}
+    .stage-banner{border-radius:16px;padding:16px;margin-top:12px}
+    .stage-banner.stage1{background:linear-gradient(180deg,#e8efff,#fff)}
+    .stage-banner.stage2{background:linear-gradient(180deg,#e6f9f1,#fff)}
+    .bullets{display:grid;grid-template-columns:1.3fr 1fr;gap:12px}
+    .bullet{display:flex;gap:8px;align-items:flex-start}
+    .bullet .dot{width:8px;height:8px;border-radius:50%;margin-top:6px;background:#0ea5a3}
+    .divider{height:1px;background:var(--border);margin:10px 0}
+    .chip{padding:4px 8px;border-radius:999px;border:1px solid var(--border);font-size:12px;background:#fff}
+    .lesson-title{font-weight:700;margin-bottom:6px}
+    .lesson-bullet{display:flex;gap:8px;align-items:flex-start;margin:6px 0}
+    .lesson-bullet .dot{width:6px;height:6px;border-radius:999px;background:#0ea5a3;margin-top:7px}
+    .quiz-q{margin:8px 0 4px 0;font-weight:600}
+    .quiz-opt{margin:4px 0}
+    .note{font-size:12px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div>
+        <h1>Family-Linked Digital Account</h1>
+        <div class="subtitle">A two-stage journey from family-linked usage to independent control.</div>
+      </div>
+      <div class="row">
+        <span id="stageBadge" class="stage-badge">Stage</span>
+        <div class="tabs" id="roleTabs"></div>
+      </div>
+    </div>
+
+    <div id="stageBanner"></div>
+    <div id="view"></div>
+    <div class="muted" style="margin-top:8px">Prototype only. Data is simulated and stored locally in your browser.</div>
+  </div>
+
+  <!-- Modals -->
+  <div class="modal" id="modal-allowance">
+    <div class="box">
+      <h3>Add allowance</h3>
+      <div class="row" style="gap:8px;align-items:flex-end">
+        <div style="flex:1">
+          <label>Amount (SAR)</label>
+          <input type="number" id="allowance-amount" placeholder="500" />
+        </div>
+        <div style="flex:1">
+          <label>Memo</label>
+          <input type="text" id="allowance-memo" placeholder="Monthly allowance" />
+        </div>
+        <button class="btn" id="allowance-submit">Add</button>
+        <button class="btn ghost" data-close="modal-allowance">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-reminder">
+    <div class="box">
+      <h3>New reminder</h3>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <div style="flex:2 1 260px">
+          <label>Title</label>
+          <input type="text" id="rem-title" placeholder="Budget check-in" />
+        </div>
+        <div style="flex:1 1 140px">
+          <label>When</label>
+          <select id="rem-when">
+            <option value="today">Today</option>
+            <option value="3d">In 3 days</option>
+            <option value="1w">In 1 week</option>
+            <option value="1m">In 1 month</option>
+          </select>
+        </div>
+        <button class="btn" id="rem-submit">Save</button>
+        <button class="btn ghost" data-close="modal-reminder">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-goal">
+    <div class="box">
+      <h3>New goal</h3>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <div style="flex:1 1 160px">
+          <label>Category</label>
+          <select id="goal-cat">
+            <option>Groceries</option>
+            <option>Mobile top-ups</option>
+            <option>Transport</option>
+            <option>School</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div style="flex:1 1 160px">
+          <label>Monthly limit (SAR)</label>
+          <input type="number" id="goal-limit" placeholder="400" />
+        </div>
+        <button class="btn" id="goal-submit">Add</button>
+        <button class="btn ghost" data-close="modal-goal">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-transaction">
+    <div class="box">
+      <h3>New transaction</h3>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <div style="flex:1 1 120px">
+          <label>Amount (SAR)</label>
+          <input type="number" id="tx-amount" placeholder="75" />
+        </div>
+        <div style="flex:1 1 220px">
+          <label>Category</label>
+          <select id="tx-cat">
+            <option>Groceries</option>
+            <option>Mobile top-ups</option>
+            <option>Transport</option>
+            <option>Dining</option>
+            <option>Leisure</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div style="flex:1 1 220px">
+          <label>Memo</label>
+          <input type="text" id="tx-memo" placeholder="e.g., Carrefour" />
+        </div>
+        <button class="btn" id="tx-submit">Add</button>
+        <button class="btn ghost" data-close="modal-transaction">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-lesson">
+    <div class="box" id="lesson-box"></div>
+  </div>
+
+<script>
+(function(){
+  const SAR = new Intl.NumberFormat(undefined,{style:'currency', currency:'SAR'});
+  const uid = () => Math.random().toString(36).slice(2,10);
+  const fmt = (n) => (n || n === 0) ? SAR.format(Number(n)) : '—';
+  const nowIso = () => new Date().toISOString();
+  const addDays = (d) => { const t = new Date(); t.setDate(t.getDate()+d); return t.toISOString(); };
+
+  // NEW KEY to avoid conflicts with older versions
+  const STORAGE_KEY = 'dualStagePrototype_v4_lessons';
+  const ROLE_KEY = 'dualStageRole_v2';
+
+  const moduleData = {
+    mod1: { title:'Budgeting & Savings',
+      bullets:[
+        'Use a simple split (e.g., 50% needs, 30% wants, 20% saving/debt).',
+        'Pay yourself first: move money to savings right after funding.',
+        'Track spending weekly; small leaks add up.',
+        'Start an emergency buffer (1–3 months of essentials).'
+      ],
+      quiz:[
+        { q:'Which split is a common budgeting rule?', opts:['70/20/10','50/30/20','80/10/10'], a:1 },
+        { q:'Best first step to build an emergency fund?', opts:['Save leftovers','Borrow to save','Move a fixed amount to savings first'], a:2 }
+      ]
+    },
+    mod2: { title:'Digital Payments & Online Safety',
+      bullets:[
+        'Never share OTPs, CVV, or full card numbers with anyone.',
+        'Check merchant names and amounts before you tap “Pay”.',
+        'Beware of urgent “verify” links — classic phishing.',
+        'Turn on 2-factor authentication (2FA).'
+      ],
+      quiz:[
+        { q:'You get a link to “verify in 10 minutes”. What do you do?', opts:['Click it','Use the official app to contact support','Reply with your OTP'], a:1 },
+        { q:'Which detail should NEVER be shared?', opts:['Masked card (****1234)','CVV / OTP','Your first name'], a:1 }
+      ]
+    },
+    mod3: { title:'Long-term Planning & Independence',
+      bullets:[
+        'Small, regular saving grows through compounding.',
+        'Set SMART goals (Specific, Measurable, Achievable, Relevant, Time-bound).',
+        'Automate transfers to savings.',
+        'Track progress monthly and adjust.'
+      ],
+      quiz:[
+        { q:'Why start saving early?', opts:['Spend more now','Compounding grows money','Banks force you'], a:1 },
+        { q:'Which goal is SMART?', opts:['Save more someday','Save SAR 1,200 for books by December','Be better with money'], a:1 }
+      ]
+    }
+  };
+
+  const fresh = () => ({
+    stage:'stage1',
+    users:{ primary:{id:uid(),name:'Family Guardian'}, sub:{id:uid(),name:'Participant',confidence:2,willing:false} },
+    linked:{
+      balance:1500,
+      number:`FLA-${Math.floor(Math.random()*900000+100000)}`,
+      tx:[{id:uid(),ts:nowIso(),kind:'credit',amount:500,memo:'Initial allowance',who:'Guardian'}],
+      goals:[], reminders:[],
+      modules:[{id:'mod1',title:moduleData.mod1.title,done:false},{id:'mod2',title:moduleData.mod2.title,done:false},{id:'mod3',title:moduleData.mod3.title,done:false}],
+      usage:{txCount:0}
+    },
+    personal:{ balance:0, number:null, tx:[], budgets:[], savings:[] },
+    ui:{ lesson:null }
+  });
+
+  function load(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)) || fresh(); } catch(e){ return fresh(); } }
+  function save(s){ localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
+
+  let state = load();
+  let role = localStorage.getItem(ROLE_KEY) || 'Participant';
+
+  function setRole(r){ role=r; localStorage.setItem(ROLE_KEY,r); render(); }
+  function mutate(mut){ const s=JSON.parse(JSON.stringify(state)); mut(s); state=s; save(state); render(); }
+
+  // Readiness
+  function readiness(s){
+    const L=s.linked,U=s.users.sub;
+    const checks = {
+      modules: L.modules.filter(m=>m.done).length>=3,
+      goalSet: L.goals.length>0,
+      engagement: L.usage.txCount>=3,
+      willingness: !!U.willing,
+      confidence: (U.confidence>=4)
+    };
+    const score = Object.values(checks).filter(Boolean).length/5;
+    return {checks,score};
+  }
+
+  // Stage 1 actions
+  function addAllowance(amount,memo){
+    if(!(amount>0)) return;
+    mutate(s=>{
+      s.linked.balance+=Number(amount);
+      s.linked.tx.unshift({id:uid(),ts:nowIso(),kind:'credit',amount:Number(amount),memo:memo||'Allowance',who:'Guardian'});
+    });
+  }
+  function addReminder(title,when){
+    const due = when==='today'? nowIso() : when==='3d'? addDays(3) : when==='1w'? addDays(7) : addDays(30);
+    mutate(s=>{ s.linked.reminders.unshift({id:uid(),title,dueIso:due,done:false}); });
+  }
+  function toggleReminder(id){ mutate(s=>{ const r=s.linked.reminders.find(x=>x.id===id); if(r) r.done=!r.done; }); }
+  function addGoal(cat,limit){ if(!(limit>0)) return; mutate(s=>{ s.linked.goals.unshift({id:uid(),cat,limit:Number(limit),spent:0}); }); }
+  function simulateSpend(amount,cat,memo){
+    if(!(amount>0)) return;
+    mutate(s=>{
+      if(s.linked.balance<amount) return;
+      s.linked.balance-=Number(amount);
+      s.linked.tx.unshift({id:uid(),ts:nowIso(),kind:'debit',amount:Number(amount),memo:memo||'Spend',who:'Participant'});
+      const g=s.linked.goals.find(x=>x.cat===cat); if(g) g.spent+=Number(amount);
+      s.linked.usage.txCount+=1;
+    });
+  }
+
+  // Lessons (NO MutationObserver)
+  function openLesson(moduleId){ 
+    state.ui.lesson={moduleId,step:'lesson',answers:[],score:0}; save(state);
+    document.getElementById('modal-lesson').classList.add('active'); renderLesson();
+  }
+  function closeLesson(){ document.getElementById('modal-lesson').classList.remove('active'); state.ui.lesson=null; save(state); }
+  function renderLesson(){
+    const box=document.getElementById('lesson-box');
+    const L=state.ui.lesson; if(!L){ box.innerHTML=''; return; }
+    const data=moduleData[L.moduleId];
+    if(L.step==='lesson'){
+      box.innerHTML = `
+        <div class="row"><div class="lesson-title">${data.title}</div><button class="btn ghost right" id="lesson-close">Close</button></div>
+        <div class="subtitle">Read these quick points, then take a 2-question check.</div>
+        <div class="divider"></div>
+        ${data.bullets.map(b=>`<div class="lesson-bullet"><div class="dot"></div><div>${b}</div></div>`).join('')}
+        <div class="divider"></div>
+        <div class="row"><button class="btn right" id="to-quiz">Start quiz</button></div>`;
+      document.getElementById('lesson-close').onclick=closeLesson;
+      document.getElementById('to-quiz').onclick=()=>{ state.ui.lesson.step='quiz'; save(state); renderLesson(); };
+    } else if(L.step==='quiz'){
+      box.innerHTML = `
+        <div class="row"><div class="lesson-title">${data.title} — Quiz</div><button class="btn ghost right" id="lesson-close">Close</button></div>
+        <div class="subtitle">Answer both questions correctly to complete this module.</div>
+        <div class="divider"></div>
+        ${data.quiz.map((q,i)=>`
+          <div class="quiz-q">${i+1}. ${q.q}</div>
+          ${q.opts.map((o,j)=>`<label class="quiz-opt"><input type="radio" name="q${i}" value="${j}"/> ${o}</label>`).join('')}
+        `).join('')}
+        <div class="divider"></div>
+        <div class="row">
+          <button class="btn ghost" id="back-lesson">Back</button>
+          <button class="btn right" id="submit-quiz">Submit</button>
+        </div>`;
+      document.getElementById('lesson-close').onclick=closeLesson;
+      document.getElementById('back-lesson').onclick=()=>{ state.ui.lesson.step='lesson'; save(state); renderLesson(); };
+      document.getElementById('submit-quiz').onclick=()=>{
+        const ans=[], q=data.quiz;
+        q.forEach((_,i)=>{ const sel=box.querySelector(`input[name="q${i}"]:checked`); ans[i]=sel?Number(sel.value):-1; });
+        let score=0; q.forEach((qq,i)=>{ if(ans[i]===qq.a) score++; });
+        state.ui.lesson.step='result'; state.ui.lesson.answers=ans; state.ui.lesson.score=score; save(state); renderLesson();
+      };
+    } else {
+      const score=L.score, pass=score>=2;
+      box.innerHTML = `
+        <div class="row"><div class="lesson-title">${data.title} — Result</div><button class="btn ghost right" id="lesson-close">Close</button></div>
+        <div class="divider"></div>
+        <div class="row" style="gap:8px;align-items:center">
+          <span class="pill ${pass?'ok':'warn'}">${pass?'Passed':'Try again'}</span>
+          <div>${score}/2 correct</div>
+        </div>
+        <div class="divider"></div>
+        <div class="row">
+          <button class="btn ghost" id="retake">Retake quiz</button>
+          <button class="btn success right" id="mark-complete" ${pass?'':'disabled'}>Mark complete</button>
+        </div>`;
+      document.getElementById('lesson-close').onclick=closeLesson;
+      document.getElementById('retake').onclick=()=>{ state.ui.lesson.step='quiz'; state.ui.lesson.answers=[]; state.ui.lesson.score=0; save(state); renderLesson(); };
+      const mc=document.getElementById('mark-complete');
+      if(mc) mc.onclick=()=>{ const m=state.linked.modules.find(x=>x.id===L.moduleId); if(m) m.done=true; closeLesson(); render(); save(state); };
+    }
+  }
+
+  // Conversion
+  function convertToStage2(){
+    const r=readiness(state); if(r.score<0.99){ alert('Complete all readiness items first.'); return; }
+    mutate(s=>{
+      s.stage='stage2';
+      s.personal.number=`PA-${Math.floor(Math.random()*900000+100000)}`;
+      s.personal.balance=s.linked.balance;
+      s.personal.tx=s.linked.tx.filter(t=>t.kind==='credit'||t.kind==='debit').map(t=>({id:uid(),ts:t.ts,amount:t.kind==='debit'? -Math.abs(t.amount):Math.abs(t.amount),cat:'Carryover',memo:t.memo}));
+    });
+  }
+
+  // Stage 2 actions
+  function addBudget(cat,limit){ if(!(limit>0)) return; mutate(s=>{ s.personal.budgets.unshift({id:uid(),cat,limit:Number(limit),spent:0}); }); }
+  function addSaving(name,target){ if(!(target>0)) return; mutate(s=>{ s.personal.savings.unshift({id:uid(),name,target:Number(target),saved:0}); }); }
+  function addTransaction(amount,cat,memo){
+    if(!(amount>0)) return;
+    mutate(s=>{
+      s.personal.balance-=Number(amount);
+      s.personal.tx.unshift({id:uid(),ts:nowIso(),amount:-Math.abs(Number(amount)),cat,memo:memo||''});
+      const b=s.personal.budgets.find(x=>x.cat===cat); if(b) b.spent+=Number(amount);
+    });
+  }
+  function saveToGoal(goalId,amount){
+    if(!(amount>0)) return;
+    mutate(s=>{
+      const g=s.personal.savings.find(x=>x.id===goalId); if(!g) return;
+      if(s.personal.balance<amount) return;
+      s.personal.balance-=Number(amount); g.saved+=Number(amount);
+      s.personal.tx.unshift({id:uid(),ts:nowIso(),amount:-Math.abs(Number(amount)),cat:'Savings',memo:`Saved to ${g.name}`});
+    });
+  }
+
+  // Helpers
+  function readyBar(score){
+    const pct=Math.round(score*100), color=score>0.66?'#059669':(score>0.33?'#f59e0b':'#ef4444');
+    return `<div><div class="row"><div class="subtitle">Independence readiness</div><div class="subtitle right">${pct}%</div></div>
+      <div style="height:8px;background:#e6eef4;border-radius:999px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${color}"></div></div></div>`;
+  }
+  function checklist(checks){
+    const names={modules:'Complete all 3 mini lessons',goalSet:'Create at least 1 goal',engagement:'Make 3 simulated spends',willingness:'Check “I want to manage my own money”',confidence:'Set confidence to 4/5'};
+    return `<div class="list">${Object.entries(checks).map(([k,ok])=>`
+      <div class="row" style="justify-content:space-between;border:1px solid var(--border);border-radius:12px;padding:10px">
+        <div>${names[k]}</div><span class="pill ${ok?'ok':'warn'}">${ok?'Done':'To-do'}</span></div>`).join('')}</div>`;
+  }
+  function stageBanner(){
+    const s2=state.stage==='stage2', cls=s2?'stage2':'stage1', head=s2?'Stage 2 — Independent account':'Stage 1 — Family-linked account';
+    const bullets=s2?['Full control by the participant','Personal budgets & savings goals','Simulated transactions & activity tracking','Optional family visibility (read-only)']:['Shared context with family notifications','Allowance-style funding & shared history','Household goals (groceries, mobile top-ups)','Reminders for requesting funds & budgeting'];
+    return `<div class="stage-banner ${cls}"><div class="row"><div><div style="font-weight:600">${head}</div><div class="subtitle">Guided journey from passive participation to independence.</div></div></div><div class="divider"></div><div class="bullets">${bullets.map(b=>`<div class="bullet"><div class="dot"></div><div>${b}</div></div>`).join('')}</div></div>`;
+  }
+
+  // Views
+  function stage1View(){
+    const L=state.linked, R=readiness(state);
+    return `${stageBanner()}
+      <div class="grid">
+        <div class="card">
+          <div class="row"><h3>Linked account</h3><button class="btn ghost right" data-action="reset">Reset</button></div>
+          <div class="row" style="justify-content:space-between;align-items:center">
+            <div><div style="font-size:24px;font-weight:700">${fmt(L.balance)}</div><div class="subtitle mono">${L.number} · Stage 1</div></div>
+            <div><button class="btn" data-open="modal-allowance">Add allowance</button></div>
+          </div>
+          <div class="divider"></div>
+          <div class="list">
+            ${L.tx.map(t=>`<div class="row" style="justify-content:space-between;background:#f5f7fb;border-radius:12px;padding:10px">
+              <div><div style="font-weight:600">${t.memo}</div><div class="subtitle">${new Date(t.ts).toLocaleString()} · ${t.who}</div></div>
+              <div style="font-weight:700;color:${t.kind==='debit'?'#b91c1c':'#0f172a'}">${t.kind==='debit'?'-':''}${fmt(t.amount)}</div></div>`).join('')}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="row"><h3>Household goals</h3><button class="btn right" data-open="modal-goal">Add goal</button></div>
+          <div class="list">
+            ${L.goals.length===0? `<div class="subtitle">No goals yet. Create one for groceries, mobile top-ups, etc.</div>` :
+              L.goals.map(g=>`<div class="row" style="justify-content:space-between;border:1px solid var(--border);border-radius:12px;padding:10px"><div>${g.cat}</div><div class="subtitle">${fmt(g.spent)} / ${fmt(g.limit)}</div></div>`).join('')}
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Learning modules</h3>
+          <div class="list">
+            ${L.modules.map(m=>`
+              <div class="row" style="justify-content:space-between;border:1px solid var(--border);border-radius:12px;padding:10px">
+                <div><div style="font-weight:600">${m.title}</div><div class="subtitle">Complete the mini lesson and pass the 2-question quiz.</div></div>
+                <div class="row">
+                  <span class="pill ${m.done?'ok':'warn'}">${m.done?'Completed':'Not complete'}</span>
+                  <button class="btn" data-open-lesson="${m.id}">${m.done?'Review':'Open lesson'}</button>
+                </div>
+              </div>`).join('')}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="row" style="gap:12px;flex-wrap:wrap">
+            <div style="flex:1 1 200px">
+              <label>Confidence (1–5)</label>
+              <input type="number" id="conf" min="1" max="5" value="${state.users.sub.confidence}"/>
+            </div>
+            <label class="row"><input type="checkbox" id="willing" ${state.users.sub.willing?'checked':''}/> I want to manage my own money</label>
+            <button class="btn right" data-action="save-readiness">Save</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Practice spending</h3>
+          <div class="row" style="gap:8px;flex-wrap:wrap">
+            <div style="flex:1 1 120px"><label>Amount (SAR)</label><input type="number" id="spend-amount" placeholder="50" /></div>
+            <div style="flex:1 1 180px"><label>Category</label>
+              <select id="spend-cat"><option>Groceries</option><option>Mobile top-ups</option><option>Transport</option><option>Other</option></select>
+            </div>
+            <div style="flex:2 1 200px"><label>Memo</label><input type="text" id="spend-memo" placeholder="e.g., Baqala" /></div>
+            <button class="btn" data-action="simulate-spend">Add</button>
+            <span class="subtitle right">Progress: ${L.usage.txCount}/3 spends</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Independence readiness</h3>
+          ${readyBar(R.score)}
+          <div class="divider"></div>
+          ${checklist(R.checks)}
+          <div class="row" style="margin-top:8px">
+            <button class="btn success" data-action="convert" ${R.score<0.99?'disabled':''}>Proceed to Stage 2</button>
+            ${R.score<0.99?'<span class="subtitle">Complete all items to unlock.</span>':''}
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function stage2View(){
+    const P=state.personal;
+    const monthSpend=P.tx.filter(t=>new Date(t.ts).getMonth()===new Date().getMonth()).reduce((a,t)=>a+Math.abs(Math.min(0,t.amount)),0);
+    const totalSaved=P.savings.reduce((a,g)=>a+g.saved,0);
+    return `${stageBanner()}
+      <div class="grid">
+        <div class="card">
+          <div class="row"><h3>Personal account</h3><button class="btn ghost right" data-action="reset">Reset</button></div>
+          <div class="row" style="justify-content:space-between;align-items:center">
+            <div><div style="font-size:24px;font-weight:700">${fmt(P.balance)}</div><div class="subtitle mono">${P.number||'PA—'} · Stage 2</div></div>
+            <div class="row" style="gap:6px"><span class="chip">This month: ${fmt(monthSpend)}</span><span class="chip">Saved: ${fmt(totalSaved)}</span></div>
+          </div>
+          <div class="divider"></div>
+          <div class="list">
+            ${P.tx.slice(0,8).map(t=>`<div class="row" style="justify-content:space-between;background:#f5f7fb;border-radius:12px;padding:10px">
+              <div><div style="font-weight:600">${t.memo||t.cat}</div><div class="subtitle">${new Date(t.ts).toLocaleString()} · ${t.cat}</div></div>
+              <div style="font-weight:700;color:#b91c1c">-${fmt(Math.abs(t.amount))}</div></div>`).join('')}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="row"><h3>Budgets</h3>
+            <div class="right row" style="gap:8px">
+              <select id="bud-cat"><option>Groceries</option><option>Mobile top-ups</option><option>Transport</option><option>Dining</option><option>Leisure</option><option>Other</option></select>
+              <input type="number" id="bud-limit" placeholder="400"/><button class="btn" data-action="add-budget">Add</button>
+            </div>
+          </div>
+          <div class="list">
+            ${P.budgets.length===0? `<div class="subtitle">Add a budget to start tracking.</div>` :
+              P.budgets.map(b=>`<div class="row" style="justify-content:space-between;border:1px solid var(--border);border-radius:12px;padding:10px"><div>${b.cat}</div><div class="subtitle">${fmt(b.spent)} / ${fmt(b.limit)}</div></div>`).join('')}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="row"><h3>Savings goals</h3>
+            <div class="right row" style="gap:8px"><input type="text" id="sav-name" placeholder="Emergency fund"/><input type="number" id="sav-target" placeholder="2000"/><button class="btn" data-action="add-saving">Add</button></div>
+          </div>
+          <div class="list">
+            ${P.savings.length===0? `<div class="subtitle">Set a target and move money into savings.</div>` :
+              P.savings.map(g=>`<div class="row" style="justify-content:space-between;border:1px solid var(--border);border-radius:12px;padding:10px">
+                <div><div style="font-weight:600">${g.name}</div><div class="subtitle">${fmt(g.saved)} / ${fmt(g.target)}</div></div>
+                <div class="row"><input type="number" data-saveamt="${g.id}" placeholder="Amount"/><button class="btn success" data-savebtn="${g.id}">Save</button></div>
+              </div>`).join('')}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="row"><h3>New transaction</h3><button class="btn right" data-open="modal-transaction">Add</button></div>
+          <div class="subtitle">Track spending against budgets. Use categories to see where your riyals go.</div>
+        </div>
+      </div>`;
+  }
+
+  function render(){
+    // badge
+    const el=document.getElementById('stageBadge');
+    el.className='stage-badge '+(state.stage==='stage2'?'stage2':'stage1');
+    el.textContent=state.stage==='stage2'?'Stage 2':'Stage 1';
+
+    // tabs
+    const tabs=['Participant','Family Guardian','Program Admin'];
+    const rt=document.getElementById('roleTabs');
+    rt.innerHTML=tabs.map(t=>`<button class="tab ${role===t?'active':''}" data-role="${t}">${t}</button>`).join('');
+
+    // view
+    const v=document.getElementById('view');
+    v.innerHTML=(state.stage==='stage1')?stage1View():stage2View();
+
+    attach();
+  }
+
+  // One-time global listeners (avoid duplicates across re-renders)
+  document.addEventListener('click', (e)=>{
+    const btn=e.target.closest('[data-open-lesson]'); if(btn){ e.preventDefault(); openLesson(btn.getAttribute('data-open-lesson')); }
+    const close=e.target.closest('[data-close]'); if(close){ document.getElementById(close.getAttribute('data-close')).classList.remove('active'); }
+  });
+  document.getElementById('modal-lesson').addEventListener('click', (e)=>{ if(e.target.classList.contains('modal')) closeLesson(); });
+
+  function openModal(id){ document.getElementById(id).classList.add('active'); }
+
+  function attach(){
+    document.querySelectorAll('[data-role]').forEach(b=>b.onclick=()=>setRole(b.getAttribute('data-role')));
+    document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openModal(b.getAttribute('data-open')));
+
+    const v=document.getElementById('view');
+    v.querySelectorAll('[data-action="reset"]').forEach(b=>b.onclick=()=>{ state=fresh(); save(state); render(); });
+
+    if(state.stage==='stage1'){
+      const allowSubmit=document.getElementById('allowance-submit');
+      if(allowSubmit) allowSubmit.onclick=()=>{ const amt=+document.getElementById('allowance-amount').value||0; const memo=document.getElementById('allowance-memo').value||''; addAllowance(amt,memo); document.getElementById('allowance-amount').value=''; document.getElementById('allowance-memo').value=''; document.getElementById('modal-allowance').classList.remove('active'); };
+      const remSubmit=document.getElementById('rem-submit');
+      if(remSubmit) remSubmit.onclick=()=>{ const title=document.getElementById('rem-title').value||''; const when=document.getElementById('rem-when').value||'today'; addReminder(title,when); document.getElementById('rem-title').value=''; document.getElementById('modal-reminder').classList.remove('active'); };
+      v.querySelectorAll('[data-remdone]').forEach(c=>c.onchange=()=>toggleReminder(c.getAttribute('data-remdone')));
+      const goalSubmit=document.getElementById('goal-submit');
+      if(goalSubmit) goalSubmit.onclick=()=>{ const cat=document.getElementById('goal-cat').value; const lim=+document.getElementById('goal-limit').value||0; addGoal(cat,lim); document.getElementById('goal-limit').value=''; document.getElementById('modal-goal').classList.remove('active'); };
+      const conf=v.querySelector('#conf'); const willing=v.querySelector('#willing');
+      v.querySelectorAll('[data-action="save-readiness"]').forEach(b=>b.onclick=()=>{ mutate(s=>{ s.users.sub.confidence=+(conf.value||1); s.users.sub.willing=!!willing.checked; }); });
+      v.querySelectorAll('[data-action="simulate-spend"]').forEach(b=>b.onclick=()=>{ const amt=+document.getElementById('spend-amount').value||0; const cat=document.getElementById('spend-cat').value; const memo=document.getElementById('spend-memo').value||''; simulateSpend(amt,cat,memo); document.getElementById('spend-amount').value=''; document.getElementById('spend-memo').value=''; });
+      v.querySelectorAll('[data-action="convert"]').forEach(b=>b.onclick=convertToStage2);
+    } else {
+      v.querySelectorAll('[data-action="add-budget"]').forEach(b=>b.onclick=()=>{ const cat=document.getElementById('bud-cat').value; const lim=+document.getElementById('bud-limit').value||0; addBudget(cat,lim); document.getElementById('bud-limit').value=''; });
+      v.querySelectorAll('[data-action="add-saving"]').forEach(b=>b.onclick=()=>{ const name=document.getElementById('sav-name').value||''; const tar=+document.getElementById('sav-target').value||0; addSaving(name,tar); document.getElementById('sav-name').value=''; document.getElementById('sav-target').value=''; });
+      v.querySelectorAll('[data-savebtn]').forEach(btn=>btn.onclick=()=>{ const id=btn.getAttribute('data-savebtn'); const inp=v.querySelector(`[data-saveamt="${id}"]`); const amt=+(inp.value||0); saveToGoal(id,amt); inp.value=''; });
+      const txSubmit=document.getElementById('tx-submit');
+      if(txSubmit) txSubmit.onclick=()=>{ const amt=+document.getElementById('tx-amount').value||0; const cat=document.getElementById('tx-cat').value; const memo=document.getElementById('tx-memo').value||''; addTransaction(amt,cat,memo); document.getElementById('tx-amount').value=''; document.getElementById('tx-memo').value=''; document.getElementById('modal-transaction').classList.remove('active'); };
+    }
+  }
+
+  // Initial render
+  render();
+})();
+</script>
+</body>
+</html>
